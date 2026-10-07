@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bird on a Rope: Tension vs Weight</title>
+<style>
+:root{
+  --bg:#f7f6f2;--card:#ffffff;--ink:#1f1e1c;--muted:#6b6a65;--line:#dcdad2;
+  --tension:#0F6E56;--comp:#1D9E75;--weight:#C2481F;--rope:#7a776e;--post:#444441;
+  --gt:#C2481F;--gt-bg:#FAECE7;--eq:#9A5A0C;--eq-bg:#FAEEDA;
+  --mid:#0F6E56;--mid-bg:#E1F5EE;--half:#534AB7;--half-bg:#EEEDFE;
+  --bird:#888780;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1b1b19;--card:#262624;--ink:#ecebe6;--muted:#a3a29b;--line:#3d3c38;
+    --tension:#5DCAA5;--comp:#9FE1CB;--weight:#F0997B;--rope:#b4b2a9;--post:#d3d1c7;
+    --gt:#F0997B;--gt-bg:#4A1B0C;--eq:#FAC775;--eq-bg:#412402;
+    --mid:#5DCAA5;--mid-bg:#04342C;--half:#AFA9EC;--half-bg:#26215C;
+    --bird:#b4b2a9;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+main{max-width:1180px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;font-weight:600;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 20px}
+h2{font-size:1.05rem;font-weight:600;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.grid-top{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.grid-bot{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:16px}
+@media (max-width:860px){.grid-top,.grid-bot{grid-template-columns:minmax(0,1fr)}}
+svg{width:100%;height:auto;display:block}
+svg text{font-family:inherit;fill:var(--ink)}
+.controls{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px 14px;align-items:center}
+.controls label{color:var(--muted);font-size:.95rem}
+input[type=range]{width:100%;accent-color:var(--tension)}
+.readout{font-weight:600;font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+.zonebar{grid-column:2;position:relative;height:30px;margin-top:-4px}
+.zonebar .seg{position:absolute;top:0;height:8px;border-radius:4px}
+.zonebar .tick{position:absolute;top:-2px;width:2px;height:12px;background:var(--ink)}
+.zonebar .tl{position:absolute;top:12px;font-size:.75rem;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.wrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wrow input{width:90px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+.err{color:var(--gt);font-size:.85rem}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;font:inherit;font-size:.88rem;cursor:pointer}
+.chip:hover{border-color:var(--muted)}
+.chip.on{background:var(--eq-bg);border-color:var(--eq);color:var(--eq);font-weight:600}
+.chip small{color:var(--muted);margin-left:4px}
+.chip.on small{color:inherit}
+#relBox{display:flex;align-items:center;justify-content:center;min-height:150px;border-radius:12px;border:2px solid var(--line);transition:background .2s,border-color .2s,color .2s}
+#relText{font-size:3.2rem;font-weight:700;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.z-gt{background:var(--gt-bg)!important;border-color:var(--gt)!important;color:var(--gt)}
+.z-eq{background:var(--eq-bg)!important;border-color:var(--eq)!important;color:var(--eq)}
+.z-mid{background:var(--mid-bg)!important;border-color:var(--mid)!important;color:var(--mid)}
+.z-half{background:var(--half-bg)!important;border-color:var(--half)!important;color:var(--half)}
+.conds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.conds li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);color:var(--muted);font-size:.93rem;transition:all .2s}
+.conds li .dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);flex:none}
+.conds li.lit{color:var(--ink);font-weight:600}
+.conds li.lit.k-gt{background:var(--gt-bg);border-color:var(--gt)} .conds li.lit.k-gt .dot{background:var(--gt);border-color:var(--gt)}
+.conds li.lit.k-eq{background:var(--eq-bg);border-color:var(--eq)} .conds li.lit.k-eq .dot{background:var(--eq);border-color:var(--eq)}
+.conds li.lit.k-mid{background:var(--mid-bg);border-color:var(--mid)} .conds li.lit.k-mid .dot{background:var(--mid);border-color:var(--mid)}
+.conds li.lit.k-half{background:var(--half-bg);border-color:var(--half)} .conds li.lit.k-half .dot{background:var(--half);border-color:var(--half)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.95rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:500}
+tr.sum td{font-weight:700;border-bottom:none}
+.steps{font-variant-numeric:tabular-nums;font-size:1rem}
+.steps .eq{padding:3px 0}
+.steps .why{color:var(--muted);font-size:.85rem;margin:10px 0 2px}
+.steps .final{display:inline-block;margin-top:6px;padding:4px 10px;border-radius:8px;font-weight:700}
+.note{margin-top:12px;padding:10px 12px;border-left:3px solid var(--comp);background:var(--mid-bg);font-size:.9rem}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.85rem;color:var(--muted);margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:middle;background:currentColor}
+.lg-t{color:var(--tension)} .lg-c{color:var(--comp)} .lg-w{color:var(--weight)}
+.newton-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:640px){.newton-wrap{grid-template-columns:minmax(0,1fr)}}
+.s-rope{stroke:var(--rope);stroke-width:2.5;fill:none}
+.s-post{fill:var(--post)}
+.s-ref{stroke:var(--muted);stroke-width:1;stroke-dasharray:5 5;fill:none}
+.s-t{stroke:var(--tension);stroke-width:3;fill:none}
+.s-c{stroke:var(--comp);stroke-width:2;stroke-dasharray:6 4;fill:none}
+.s-w{stroke:var(--weight);stroke-width:3;fill:none}
+.s-arc{stroke:var(--muted);stroke-width:1.2;fill:none}
+.f-t{fill:var(--tension)} .f-c{fill:var(--comp)} .f-w{fill:var(--weight)}
+.t-t{fill:var(--tension)!important;font-weight:700} .t-c{fill:var(--comp)!important;font-size:13px}
+.t-w{fill:var(--weight)!important;font-weight:700} .t-m{fill:var(--muted)!important;font-size:12px}
+.bird{fill:var(--bird);opacity:.6}
+.g-axis{stroke:var(--muted);stroke-width:1}
+.g-grid{stroke:var(--line);stroke-width:1}
+.g-curve{stroke:var(--tension);stroke-width:2.5;fill:none}
+.g-w{stroke:var(--eq);stroke-width:1.5;stroke-dasharray:6 4}
+.g-h{stroke:var(--half);stroke-width:1.5;stroke-dasharray:6 4}
+.g-zone{fill:var(--gt-bg)}
+.g-pt{fill:var(--ink)}
+footer{margin-top:24px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<h1>Bird on a rope: tension vs weight</h1>
+<p class="sub">A bird of weight W sits at the midpoint of a light rope. Drag θ (the angle each half of the rope makes with the horizontal) and watch how the tension responds. Sign convention: right and up positive, left and down negative.</p>
+
+<section class="card">
+  <div class="controls">
+    <label for="ang">Sag angle θ</label>
+    <input type="range" id="ang" min="1" max="90" step="0.1" value="8">
+    <span class="readout" id="angOut">8.0°</span>
+    <span></span>
+    <div class="zonebar" id="zonebar"></div>
+    <span></span>
+  </div>
+  <div class="wrow" style="margin-top:6px">
+    <label for="wIn" style="color:var(--muted)">Weight W (N)</label>
+    <input type="number" id="wIn" min="0.01" step="0.01" value="1.00">
+    <span class="err" id="wErr"></span>
+  </div>
+  <div class="chips" id="chips"></div>
+</section>
+
+<div class="grid-top">
+  <section class="card">
+    <h2>Setup and force vectors</h2>
+    <svg id="scene" viewBox="0 0 680 460" role="img" aria-label="Rope, bird, tension vectors with components, and weight">
+      <defs>
+        <marker id="mT" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-t"/></marker>
+        <marker id="mC" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-c"/></marker>
+        <marker id="mW" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="f-w"/></marker>
+      </defs>
+      <line id="ref" class="s-ref"/>
+      <rect id="postL" class="s-post" width="10" height="70" rx="2"/>
+      <rect id="postR" class="s-post" width="10" height="70" rx="2"/>
+      <polyline id="rope" class="s-rope"/>
+      <g id="bird" class="bird">
+        <ellipse cx="0" cy="-13" rx="13" ry="8"/>
+        <circle cx="10" cy="-22" r="5.5"/>
+        <polygon points="15,-24 22,-21.5 15,-19.5"/>
+        <polygon points="-11,-14 -24,-21 -21,-9"/>
+      </g>
+      <path id="arc" class="s-arc"/>
+      <text id="thLbl" class="t-m" style="font-size:14px">θ</text>
+      <line id="cxL" class="s-c" marker-end="url(#mC)"/>
+      <line id="cyL" class="s-c" marker-end="url(#mC)"/>
+      <line id="cxR" class="s-c" marker-end="url(#mC)"/>
+      <line id="cyR" class="s-c" marker-end="url(#mC)"/>
+      <line id="tL" class="s-t" marker-end="url(#mT)"/>
+      <line id="tR" class="s-t" marker-end="url(#mT)"/>
+      <line id="wv" class="s-w" marker-end="url(#mW)"/>
+      <circle id="pt" r="4" style="fill:var(--ink)"/>
+      <text id="tLl" class="t-t" text-anchor="end">T<tspan baseline-shift="sub" font-size="11">L</tspan></text>
+      <text id="tRl" class="t-t">T<tspan baseline-shift="sub" font-size="11">R</tspan></text>
+      <text id="cxLl" class="t-c" text-anchor="middle">−T cos θ</text>
+      <text id="cxRl" class="t-c" text-anchor="middle">+T cos θ</text>
+      <text id="cyLl" class="t-c" text-anchor="start">+T sin θ</text>
+      <text id="cyRl" class="t-c" text-anchor="end">+T sin θ</text>
+      <text id="wl" class="t-w">W</text>
+      <text x="340" y="452" class="t-m" text-anchor="middle">All vectors drawn to the same scale</text>
+    </svg>
+    <div class="legend"><span class="lg-t">Tension</span><span class="lg-c">Components</span><span class="lg-w">Weight</span></div>
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <h2>Tension vs weight</h2>
+      <div id="relBox" aria-live="polite"><span id="relText">T &gt; W</span></div>
+    </section>
+    <section class="card">
+      <h2>Key thresholds</h2>
+      <ul class="conds">
+        <li id="c1" class="k-gt"><span class="dot"></span>T exceeds W (θ &lt; 30°)</li>
+        <li id="c2" class="k-eq"><span class="dot"></span>T equals W (θ = 30°)</li>
+        <li id="c3" class="k-mid"><span class="dot"></span>T is less than W (θ &gt; 30°)</li>
+        <li id="c4" class="k-mid"><span class="dot"></span>T exceeds W/2 (θ &lt; 90°)</li>
+        <li id="c5" class="k-half"><span class="dot"></span>T equals W/2 (θ = 90°, rope vertical)</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<div class="grid-bot">
+  <section class="card">
+    <h2>Newton's second law at the midpoint</h2>
+    <div class="newton-wrap">
+      <div>
+        <table>
+          <thead><tr><th>Force</th><th>F<sub>x</sub> (N)</th><th>F<sub>y</sub> (N)</th></tr></thead>
+          <tbody>
+            <tr><td>T<sub>L</sub> (left half)</td><td id="xL"></td><td id="yL"></td></tr>
+            <tr><td>T<sub>R</sub> (right half)</td><td id="xR"></td><td id="yR"></td></tr>
+            <tr><td>W (weight)</td><td id="xW"></td><td id="yW"></td></tr>
+            <tr class="sum"><td>ΣF = ma</td><td id="sx"></td><td id="sy"></td></tr>
+          </tbody>
+        </table>
+        <div class="note">Each vertical component always equals W/2, whatever θ is. Only the horizontal components grow as the rope flattens, and that is what drives T up.</div>
+      </div>
+      <div class="steps">
+        <div class="why">Horizontal (a<sub>x</sub> = 0)</div>
+        <div class="eq">ΣF<sub>x</sub> = ma<sub>x</sub> = 0</div>
+        <div class="eq">(−T cos θ) + (+T cos θ) = 0</div>
+        <div class="eq" id="hx"></div>
+        <div class="why">Vertical (a<sub>y</sub> = 0)</div>
+        <div class="eq">ΣF<sub>y</sub> = ma<sub>y</sub> = 0</div>
+        <div class="eq">T sin θ + T sin θ + (−W) = 0</div>
+        <div class="eq">2T sin θ = W</div>
+        <div class="eq">T = W / (2 sin θ)</div>
+        <div class="eq" id="s1"></div>
+        <div class="eq" id="s2"></div>
+        <div class="eq" id="s3"></div>
+        <div class="eq"><span class="final" id="s4"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <h2>Vector triangle (forces tip to tail)</h2>
+      <svg id="tri" viewBox="0 0 340 250" role="img" aria-label="Closed vector triangle of W and the two tensions">
+        <line id="vw" class="s-w" marker-end="url(#mW)"/>
+        <line id="vr" class="s-t" marker-end="url(#mT)"/>
+        <line id="vl" class="s-t" marker-end="url(#mT)"/>
+        <text id="vwl" class="t-w" text-anchor="end">W</text>
+        <text id="vrl" class="t-t">T<tspan baseline-shift="sub" font-size="11">R</tspan></text>
+        <text id="vll" class="t-t">T<tspan baseline-shift="sub" font-size="11">L</tspan></text>
+      </svg>
+    </section>
+    <section class="card">
+      <h2>T / W against θ</h2>
+      <svg id="graph" viewBox="0 0 340 240" role="img" aria-label="Graph of tension divided by weight against angle"></svg>
+    </section>
+  </div>
+</div>
+
+<footer>T = W / (2 sin θ). For a nearly horizontal rope (small θ), sin θ is small, so T can be many times larger than W.</footer>
+</main>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const S=(el,a)=>{for(const k in a)el.setAttribute(k,a[k]);};
+const NS="http://www.w3.org/2000/svg";
+const mk=(tag,a,parent,txt)=>{const e=document.createElementNS(NS,tag);S(e,a);if(txt!=null)e.textContent=txt;parent.appendChild(e);return e;};
+const D2R=Math.PI/180;
+const fmt=x=>{const a=Math.abs(x);if(a<5e-10)return "0.00";if(a>=100)return x.toFixed(0);if(a>=10)return x.toFixed(1);if(a>=1)return x.toFixed(2);return x.toFixed(3);};
+const sgn=x=>(Math.abs(x)<5e-10?"0.00":(x<0?"−":"+")+fmt(Math.abs(x)));
+
+let theta=8, W=1;
+
+/* milestones */
+const MIL=[{lab:"T = 5W",r:5},{lab:"T = 2W",r:2},{lab:"T = W",r:1},{lab:"T = W/√2",r:Math.SQRT1_2},{lab:"T = W/2",r:0.5}]
+  .map(m=>({...m,deg:Math.asin(1/(2*m.r))/D2R}));
+const chips=$("chips");
+MIL.forEach((m,i)=>{
+  const b=document.createElement("button");b.className="chip";b.type="button";
+  b.innerHTML=m.lab+"<small>θ = "+(Math.abs(m.deg-Math.round(m.deg))<1e-9?m.deg.toFixed(0):m.deg.toFixed(2))+"°</small>";
+  b.addEventListener("click",()=>{theta=m.deg;$("ang").value=m.deg;render();});
+  m.el=b;chips.appendChild(b);
+});
+
+/* zone bar under slider */
+(function(){
+  const zb=$("zonebar"),p=d=>((d-1)/89*100);
+  const seg=(a,b,col)=>{const s=document.createElement("div");s.className="seg";s.style.left=p(a)+"%";s.style.width=(p(b)-p(a))+"%";s.style.background=col;zb.appendChild(s);};
+  seg(1,30,"var(--gt)");seg(30,90,"var(--mid)");
+  [[30,"T = W"],[90,"T = W/2"]].forEach(([d,l])=>{
+    const t=document.createElement("div");t.className="tick";t.style.left="calc("+p(d)+"% - 1px)";zb.appendChild(t);
+    const x=document.createElement("div");x.className="tl";x.style.left=p(d)+"%";x.textContent=l+" ("+d+"°)";
+    if(d===90){x.style.transform="translateX(-100%)";}
+    zb.appendChild(x);
+  });
+  const x=document.createElement("div");x.className="tl";x.style.left="0";x.style.transform="none";x.textContent="T > W";zb.appendChild(x);
+})();
+
+/* static graph frame */
+const G=$("graph"),gx=d=>45+d/90*270,YMAX=6,gy=r=>205-Math.min(r,YMAX)/YMAX*185;
+mk("rect",{x:gx(0),y:20,width:gx(30)-gx(0),height:185,class:"g-zone"},G);
+[0,1,2,3,4,5,6].forEach(v=>{mk("line",{x1:45,x2:315,y1:gy(v),y2:gy(v),class:"g-grid"},G);mk("text",{x:38,y:gy(v)+4,"text-anchor":"end",class:"t-m"},G,v);});
+[0,30,60,90].forEach(d=>{mk("line",{x1:gx(d),x2:gx(d),y1:205,y2:210,class:"g-axis"},G);mk("text",{x:gx(d),y:223,"text-anchor":"middle",class:"t-m"},G,d+"°");});
+mk("line",{x1:45,x2:315,y1:205,y2:205,class:"g-axis"},G);mk("line",{x1:45,x2:45,y1:20,y2:205,class:"g-axis"},G);
+mk("line",{x1:45,x2:315,y1:gy(1),y2:gy(1),class:"g-w"},G);
+mk("line",{x1:45,x2:315,y1:gy(0.5),y2:gy(0.5),class:"g-h"},G);
+mk("text",{x:312,y:gy(1)-5,"text-anchor":"end",class:"t-m",style:"fill:var(--eq)"},G,"T = W");
+mk("text",{x:312,y:gy(0.5)+14,"text-anchor":"end",class:"t-m",style:"fill:var(--half)"},G,"T = W/2");
+mk("text",{x:180,y:238,"text-anchor":"middle",class:"t-m"},G,"θ");
+let pts=[];for(let d=Math.asin(1/(2*YMAX))/D2R;d<=90.0001;d+=0.25){pts.push(gx(d).toFixed(1)+","+gy(1/(2*Math.sin(d*D2R))).toFixed(1));}
+mk("polyline",{points:pts.join(" "),class:"g-curve"},G);
+const gDrop=mk("line",{class:"g-grid",style:"stroke:var(--muted);stroke-dasharray:3 3"},G);
+const gPt=mk("circle",{r:5,class:"g-pt"},G);
+const gTxt=mk("text",{class:"t-m",style:"font-size:12px;font-weight:600;fill:var(--ink)"},G,"");
+
+function render(){
+  const th=theta*D2R,s=Math.sin(th),c=Math.cos(th);
+  const R=1/(2*s),T=R*W,Tc=T*c,Ts=T*s;
+  const eps=1e-3;
+  const gtW=R>1+eps, eqW=Math.abs(R-1)<=eps, ltW=R<1-eps;
+  const gtH=R>0.5+eps, eqH=Math.abs(R-0.5)<=eps;
+  const zone=gtW?"z-gt":eqW?"z-eq":eqH?"z-half":"z-mid";
+
+  $("angOut").textContent=(Math.abs(theta-Math.round(theta*10)/10)<1e-9?theta.toFixed(1):theta.toFixed(2))+"°";
+
+  /* scene */
+  const L=250,cx=340,top=60,P={x:cx,y:top+L*s},A={x:cx-L*c,y:top},B={x:cx+L*c,y:top};
+  S($("rope"),{points:`${A.x},${A.y} ${P.x},${P.y} ${B.x},${B.y}`});
+  S($("postL"),{x:A.x-10,y:top-20});S($("postR"),{x:B.x,y:top-20});
+  S($("ref"),{x1:40,y1:P.y,x2:640,y2:P.y});
+  $("bird").setAttribute("transform",`translate(${P.x},${P.y})`);
+  S($("pt"),{cx:P.x,cy:P.y});
+  const ar=46;S($("arc"),{d:`M${P.x+ar} ${P.y} A${ar} ${ar} 0 0 0 ${P.x+ar*Math.cos(th)} ${P.y-ar*Math.sin(th)}`});
+  const hl=th/2;S($("thLbl"),{x:P.x+(ar+10)*Math.cos(hl),y:P.y-(ar+10)*Math.sin(hl)+5});
+
+  const k=Math.min(130/W,215/T);
+  const tl=T*k,txp=Tc*k,typ=Ts*k,wl=W*k;
+  const tipR={x:P.x+txp,y:P.y-typ},tipL={x:P.x-txp,y:P.y-typ};
+  S($("tR"),{x1:P.x,y1:P.y,x2:tipR.x,y2:tipR.y});
+  S($("tL"),{x1:P.x,y1:P.y,x2:tipL.x,y2:tipL.y});
+  S($("cxR"),{x1:P.x,y1:P.y,x2:tipR.x,y2:P.y});
+  S($("cxL"),{x1:P.x,y1:P.y,x2:tipL.x,y2:P.y});
+  S($("cyR"),{x1:tipR.x,y1:P.y,x2:tipR.x,y2:tipR.y});
+  S($("cyL"),{x1:tipL.x,y1:P.y,x2:tipL.x,y2:tipL.y});
+  S($("wv"),{x1:P.x,y1:P.y,x2:P.x,y2:P.y+wl});
+  ["cxR","cxL"].forEach(id=>$(id).style.display=txp<6?"none":"");
+  ["cyR","cyL"].forEach(id=>$(id).style.display=typ<6?"none":"");
+  S($("tRl"),{x:tipR.x+8+ (theta>80?6:0),y:tipR.y-8});
+  S($("tLl"),{x:tipL.x-8-(theta>80?6:0),y:tipL.y-8});
+  const showCx=txp>60,showCy=typ>28;
+  $("cxRl").style.display=$("cxLl").style.display=showCx?"":"none";
+  $("cyRl").style.display=$("cyLl").style.display=showCy?"":"none";
+  S($("cxRl"),{x:P.x+txp/2+10,y:P.y+20});S($("cxLl"),{x:P.x-txp/2-10,y:P.y+20});
+  S($("cyRl"),{x:tipR.x+8,y:P.y-typ/2+4});$("cyRl").setAttribute("text-anchor","start");
+  S($("cyLl"),{x:tipL.x-8,y:P.y-typ/2+4});$("cyLl").setAttribute("text-anchor","end");
+  S($("wl"),{x:P.x+10,y:P.y+Math.max(wl,14)+4});
+
+  /* triangle: W down, T_R, then T_L back to start */
+  const wpx=Math.min(190,230/(R*c||1e-9),190), Tpx=wpx*R;
+  const x0=70,y0=125-wpx/2;
+  const Bp={x:x0,y:y0+wpx},Cp={x:x0+Tpx*c,y:y0+wpx/2};
+  S($("vw"),{x1:x0,y1:y0,x2:Bp.x,y2:Bp.y});
+  S($("vr"),{x1:Bp.x,y1:Bp.y,x2:Cp.x,y2:Cp.y});
+  S($("vl"),{x1:Cp.x,y1:Cp.y,x2:x0,y2:y0});
+  S($("vwl"),{x:x0-10,y:y0+wpx/2+5});
+  S($("vrl"),{x:(Bp.x+Cp.x)/2+4,y:(Bp.y+Cp.y)/2+20});
+  S($("vll"),{x:(Cp.x+x0)/2+4,y:(Cp.y+y0)/2-10});
+
+  /* graph point */
+  const px=gx(theta),py=gy(R);
+  S(gPt,{cx:px,cy:py});S(gDrop,{x1:px,x2:px,y1:py,y2:205});
+  gTxt.textContent=(R>YMAX?"↑ ":"")+"T = "+fmt(R)+"W";
+  S(gTxt,{x:Math.min(px+8,250),y:Math.max(py-8,16)});
+
+  /* table */
+  $("xL").textContent=sgn(-Tc);$("yL").textContent=sgn(Ts);
+  $("xR").textContent=sgn(Tc);$("yR").textContent=sgn(Ts);
+  $("xW").textContent="0.00";$("yW").textContent=sgn(-W);
+  $("sx").textContent=sgn(-Tc+Tc);$("sy").textContent=sgn(2*Ts-W);
+
+  /* steps */
+  $("hx").textContent=`(${sgn(-Tc)}) + (${sgn(Tc)}) = 0 ✓`;
+  const th_s=$("angOut").textContent;
+  $("s1").textContent=`T = ${fmt(W)} / (2 × sin ${th_s})`;
+  $("s2").textContent=`T = ${fmt(W)} / (2 × ${s.toFixed(4)})`;
+  $("s3").textContent=`T = ${fmt(W)} / ${(2*s).toFixed(4)}`;
+  const f=$("s4");f.textContent=`T = ${fmt(T)} N  (= ${fmt(R)} W)`;f.className="final "+zone;
+
+  /* relation box */
+  const rb=$("relBox");rb.className=zone;
+  $("relText").textContent=gtW?"T > W":eqW?"T = W":eqH?"T = W/2":"W/2 < T < W";
+
+  /* conditions */
+  [[ "c1",gtW],["c2",eqW],["c3",ltW],["c4",gtH],["c5",eqH]].forEach(([id,on])=>$(id).classList.toggle("lit",on));
+
+  /* chips */
+  MIL.forEach(m=>m.el.classList.toggle("on",Math.abs(R-m.r)<=eps*m.r));
+}
+
+$("ang").addEventListener("input",e=>{theta=parseFloat(e.target.value);render();});
+$("wIn").addEventListener("input",e=>{
+  const v=parseFloat(e.target.value);
+  if(!(v>0)){$("wErr").textContent="Enter a weight greater than 0";return;}
+  $("wErr").textContent="";W=v;render();
+});
+render();
+})();
+</script>
+</body>
+</html>
